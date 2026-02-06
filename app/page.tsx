@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Editor from "@monaco-editor/react";
+
 
 type Finding = {
   id: string;
@@ -78,12 +80,22 @@ export default function Home() {
             </button>
           </div>
 
-          <textarea
+          <div className="h-[520px] overflow-hidden rounded-lg border">
+            <Editor
+            height="100%"
+            defaultLanguage="javascript"
             value={code}
-            onChange={(e) => setCode(e.target.value)}
-            spellCheck={false}
-            className="h-[520px] w-full resize-none rounded-lg border bg-white p-3 font-mono text-sm outline-none focus:ring-2"
-          />
+            onChange={(value) => setCode(value ?? "")}
+            theme="vs-dark"
+            options={{
+              fontSize: 14,
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+            }}
+            />
+          </div>
+
         </section>
 
         {/* Results */}
