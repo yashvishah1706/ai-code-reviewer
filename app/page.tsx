@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import Editor from "@monaco-editor/react";
-
+import { useState, useRef } from "react";
+import Editor, { OnMount } from "@monaco-editor/react";
 
 type Finding = {
   id: string;
@@ -24,9 +23,22 @@ export default function Home() {
   const [code, setCode] = useState(
     `// Paste your code here\nfunction hello(name) {\n  return "Hello " + name;\n}\n`
   );
+
+  const [language, setLanguage] = useState<
+    "javascript" | "typescript" | "python"
+  >("javascript");
+
   const [result, setResult] = useState<ReviewResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const editorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
+
+  const handleEditorDidMount: OnMount = (editor, monaco) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+  };
 
   async function handleAnalyze() {
     setLoading(true);
@@ -37,7 +49,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          language: "javascript",
+          language,
           focus: ["bugs", "security", "performance", "readability"],
           code,
         }),
@@ -57,20 +69,51 @@ export default function Home() {
     }
   }
 
+  function handleLanguageChange(
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) {
+    const newLang = e.target.value as
+      | "javascript"
+      | "typescript"
+      | "python";
+
+    setLanguage(newLang);
+
+    if (editorRef.current && monacoRef.current) {
+      const model = editorRef.current.getModel();
+      if (model) {
+        monacoRef.current.editor.setModelLanguage(model, newLang);
+      }
+    }
+  }
+
   return (
     <main className="min-h-screen p-6">
       <header className="mb-6">
         <h1 className="text-2xl font-semibold">AI Code Review Assistant</h1>
         <p className="text-sm text-gray-500">
-          Day 1: Analyze button wired to backend API
+          Day 2: Monaco editor + language selector
         </p>
       </header>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Editor */}
         <section className="rounded-xl border p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-medium">Editor</span>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Editor</span>
+
+              <select
+                value={language}
+                onChange={handleLanguageChange}
+                className="rounded-md border bg-black px-2 py-1 text-sm"
+              >
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="python">Python</option>
+              </select>
+            </div>
+
             <button
               onClick={handleAnalyze}
               disabled={loading}
@@ -82,20 +125,19 @@ export default function Home() {
 
           <div className="h-[520px] overflow-hidden rounded-lg border">
             <Editor
-            height="100%"
-            defaultLanguage="javascript"
-            value={code}
-            onChange={(value) => setCode(value ?? "")}
-            theme="vs-dark"
-            options={{
-              fontSize: 14,
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-            }}
+              height="100%"
+              value={code}
+              onChange={(value) => setCode(value ?? "")}
+              onMount={handleEditorDidMount}
+              theme="vs-dark"
+              options={{
+                fontSize: 14,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+              }}
             />
           </div>
-
         </section>
 
         {/* Results */}
